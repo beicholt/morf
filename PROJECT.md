@@ -8,18 +8,16 @@ daily-puzzle / streak / share loop in the style of Wordle.
 
 ## Repo & deployment facts (verified)
 
-- **Repo:** `beicholt/Word-Game` on GitHub — **not yet renamed** (despite some
-  earlier internal notes suggesting otherwise).
+- **Repo:** has been **renamed to `beicholt/blurt`** on GitHub (confirmed via
+  a "this repository moved" redirect on push; some local tooling/remote URLs
+  still reference the old `Word-Game` name but GitHub redirects them fine).
 - **Dev branch:** `claude/wordle-replica-game-wv7rc0`, merged to `main` via PRs
   (#1 through #11 so far, all merged, working tree clean).
 - **Everything lives in one `index.html`** (~78KB) + `README.md`. No build step,
   no dependencies. Run locally with `python3 -m http.server`.
 - **GitHub Pages** auto-deploys `main`. The code's `PLAY_URL` constant and the
-  README both currently point to `https://beicholt.github.io/blurt/` —
-  **this is a known discrepancy/open item**: the repo is `Word-Game`, not
-  `blurt`, so this URL may not actually resolve. Needs to be checked/fixed
-  (either configure Pages to serve from a path/repo named `blurt`, or update
-  `PLAY_URL` + README to the real Pages URL).
+  README both point to `https://beicholt.github.io/blurt/`, which now matches
+  the renamed repo (`blurt`) — no longer a discrepancy.
 - **Domain `morf.day`** has been purchased ($10/yr) for a possible rename to
   **MORF** (see "Naming" below) — **not wired up yet**.
 
@@ -247,13 +245,12 @@ in any verified pass.
 
 ## Immediate next steps / open items
 
-1. **Decide the final name** (MORF vs. NUDGE/SEGUE/other) — rename sweep is
-   ready to execute the moment this is confirmed.
-2. **Resolve the `PLAY_URL`/GitHub Pages URL discrepancy** (`Word-Game` repo
-   vs. `/blurt/` path in `PLAY_URL` and README).
-3. Phase 0 GTM technical work not started: OG meta tags/social card image, PWA
+1. **Decide the final name** (MORF vs. NUDGE/SEGUE/other, or keep BLURT! now
+   that the repo is `beicholt/blurt`) — rename sweep is ready to execute the
+   moment this is confirmed.
+2. Phase 0 GTM technical work not started: OG meta tags/social card image, PWA
    manifest, analytics integration.
-4. Challenge-link feature (Phase 1) not started.
-5. `README.md` has been kept in sync with every gameplay/vocabulary change so
-   far; it will need updating again as part of the rename sweep and once
+3. Challenge-link feature (Phase 1) not started.
+4. `README.md` has been kept in sync with every gameplay/vocabulary change so
+   far; it will need updating again as part of any rename and once
    `morf.day` (or the chosen domain) is wired up.
