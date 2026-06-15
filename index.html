@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-<title>BLURT! — word to word, one letter at a time</title>
-<meta name="description" content="BLURT! Turn one word into another, one letter per step. Every step must be a real word. Match the perfect path. Keep the streak alive.">
+<title>MORF — word to word, one letter at a time</title>
+<meta name="description" content="MORF Turn one word into another, one letter per step. Every step must be a real word. Match the perfect path. Keep the streak alive.">
 <style>
   :root {
     --bg: #12131a;
@@ -246,11 +246,32 @@
   }
   @keyframes fall { to { transform: translateY(105vh) rotate(720deg); } }
 </style>
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="MORF">
+<meta property="og:title" content="MORF">
+<meta property="og:description" content="tap a tile · swap a letter · lock it in">
+<meta property="og:url" content="https://morf.day">
+<meta property="og:image" content="https://morf.day/og.png">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="MORF">
+<meta name="twitter:description" content="tap a tile · swap a letter · lock it in">
+<meta name="twitter:image" content="https://morf.day/og.png">
+
+<!-- PWA manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Analytics -->
+<script data-goatcounter="https://morf.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
 
 <header>
-  <div class="logo">BLURT<span>!</span><button id="help-btn" aria-label="How to play">?</button></div>
+  <div class="logo">MORF<button id="help-btn" aria-label="How to play">?</button></div>
   <div class="stats">
     <div class="stat"><div class="num fire" id="streak">0</div><div class="lbl">streak</div></div>
     <div class="stat"><div class="num" id="best">0</div><div class="lbl">best</div></div>
@@ -282,14 +303,14 @@
     <p id="ov-sub"></p>
     <div class="btnrow">
       <button id="ov-share">SHARE 📣</button>
-      <button id="ov-btn" class="ghost">BLURT AGAIN</button>
+      <button id="ov-btn" class="ghost">MORF AGAIN</button>
     </div>
   </div>
 </div>
 
 <div id="help">
   <div class="card help-card">
-    <h2>HOW TO BLURT</h2>
+    <h2>HOW TO MORF</h2>
     <p class="help-goal">Turn the <b>top word</b> into the <b>goal word</b>,<br>one letter at a time.</p>
     <ol class="help-steps">
       <li><b>Tap a letter</b> in the glowing row</li>
@@ -310,7 +331,7 @@
       <span style="color:#c0334a">■</span> <b>Red</b> — not a word. Costs a step.<br>
       Fewer steps = bigger flex. Match the <b>perfect path</b> — or beat it with a rare word.
     </p>
-    <div class="btnrow"><button id="help-btn-close">LET ME BLURT</button></div>
+    <div class="btnrow"><button id="help-btn-close">LET ME MORF</button></div>
   </div>
 </div>
 
@@ -358,13 +379,13 @@
   function load(key, fallback) {
     try { return Object.assign(fallback, JSON.parse(localStorage.getItem(key) || "{}")); } catch (e) { return fallback; }
   }
-  const stats = load("blurt-stats", { streak: 0, best: 0, solved: 0 });
-  const daily = load("blurt-daily", { streak: 0, best: 0, solved: 0, lastWinDay: 0, lastResult: null });
+  const stats = load("morf-stats", { streak: 0, best: 0, solved: 0 });
+  const daily = load("morf-daily", { streak: 0, best: 0, solved: 0, lastWinDay: 0, lastResult: null });
 
   function saveStats() {
     try {
-      localStorage.setItem("blurt-stats", JSON.stringify(stats));
-      localStorage.setItem("blurt-daily", JSON.stringify(daily));
+      localStorage.setItem("morf-stats", JSON.stringify(stats));
+      localStorage.setItem("morf-daily", JSON.stringify(daily));
     } catch (e) {}
     const s = mode === "daily" ? daily : stats;
     document.getElementById("streak").textContent = s.streak;
@@ -629,16 +650,16 @@
     document.getElementById("ov-title").textContent = title;
     document.getElementById("ov-word").textContent = word;
     document.getElementById("ov-sub").textContent = sub;
-    document.getElementById("ov-btn").textContent = mode === "daily" ? "PLAY ENDLESS" : "BLURT AGAIN";
+    document.getElementById("ov-btn").textContent = mode === "daily" ? "PLAY ENDLESS" : "MORF AGAIN";
     overlay.classList.add("show");
   }
 
   // ----- Share: rung trail, no intermediate words revealed -----
-  const PLAY_URL = "https://beicholt.github.io/blurt/";
+  const PLAY_URL = "https://morf.day";
   function shareText() {
     const rungs = hist.length - 1;
     const lines = [];
-    const head = mode === "daily" ? `BLURT! Daily #${todayNum()}` : "BLURT! Endless";
+    const head = mode === "daily" ? `MORF Daily #${todayNum()}` : "MORF Endless";
     lines.push(`${head} — ${puzzle.start.toUpperCase()} ➜ ${puzzle.target.toUpperCase()}`);
     lines.push(`${rungs} steps · perfect is ${puzzle.par} ${rungs < puzzle.par ? "🦅" : rungs === puzzle.par ? "🔮" : ""}`);
     let prevGood = hist[0].w;
@@ -720,9 +741,9 @@
   document.getElementById("help-btn-close").addEventListener("click", () => { toggleHelp(false); focusKb(); });
   help.addEventListener("click", e => { if (e.target === help) toggleHelp(false); });
   try {
-    if (!localStorage.getItem("blurt-helped2")) {
+    if (!localStorage.getItem("morf-helped2")) {
       toggleHelp(true);
-      localStorage.setItem("blurt-helped2", "1");
+      localStorage.setItem("morf-helped2", "1");
     }
   } catch (e) { toggleHelp(true); }
 
