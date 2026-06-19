@@ -1,8 +1,8 @@
-# BLURT! 🪜
+# MORF 🪜
 
 A stupidly simple, highly addictive word-morphing game.
 
-**▶ Play now: https://beicholt.github.io/blurt/**
+**▶ Play now: https://beicholt.github.io/morf/**
 
 ## How to play
 
@@ -33,7 +33,7 @@ Every finished puzzle has a **SHARE** button that produces a spoiler-free step
 trail with your score — ready for the group chat:
 
 ```
-BLURT! Daily #163 — VICE ➜ WERE
+MORF Daily #163 — VICE ➜ WERE
 3 steps · perfect is 3 🔮
 🟩⬜⬜🟩
 🟩⬜🟩🟩
