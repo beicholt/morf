@@ -40,13 +40,15 @@
     border-bottom: 1px solid var(--tile-border);
   }
   .logo {
-    font-size: 1.7rem;
-    font-weight: 800;
-    letter-spacing: 2px;
-    color: var(--accent);
-    text-shadow: 0 2px 0 rgba(0,0,0,.4);
+    font-family: ui-rounded, "SF Pro Rounded", "Baloo 2", "Quicksand", system-ui, sans-serif;
+    font-size: 2.15rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    line-height: 1;
+    color: var(--accent);            /* M · R · F — brand pink */
+    text-shadow: 0 2px 0 rgba(0,0,0,.45);
   }
-  .logo span { color: var(--text); }
+  .logo .o { color: var(--lock); }   /* O — brand green, the "match" color */
   #help-btn {
     width: 24px;
     height: 24px;
@@ -104,7 +106,7 @@
   }
   /* compact layout while the on-screen keyboard is open (or very short windows) */
   body.squeeze header { padding: 4px 16px; }
-  body.squeeze .logo { font-size: 1.2rem; }
+  body.squeeze .logo { font-size: 1.55rem; }
   body.squeeze .stat .num { font-size: 1rem; }
   body.squeeze #hint { display: none; }
   body.squeeze .tab { padding: 4px 14px; font-size: .65rem; }
@@ -223,6 +225,40 @@
   }
   .card button.ghost { background: var(--key); }
   .card button:active { transform: scale(.96); }
+  .card .linklike {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: .82rem;
+    font-weight: 700;
+    letter-spacing: .5px;
+    padding: 4px;
+    margin-top: 16px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .card .linklike:active { color: var(--text); transform: none; }
+
+  /* peek-back pill: reopens the results card after you've eyeballed the board */
+  #peek {
+    position: fixed;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-weight: 800;
+    font-size: .85rem;
+    letter-spacing: 1px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.45);
+    cursor: pointer;
+    z-index: 25;
+  }
+  #peek[hidden] { display: none; }
+  #peek:active { transform: translateX(-50%) scale(.96); }
 
   .help-card { text-align: left; }
   .help-card h2 { text-align: center; }
@@ -271,7 +307,7 @@
 <body>
 
 <header>
-  <div class="logo">MORF<button id="help-btn" aria-label="How to play">?</button></div>
+  <div class="logo">M<span class="o">O</span>RF<button id="help-btn" aria-label="How to play">?</button></div>
   <div class="stats">
     <div class="stat"><div class="num fire" id="streak">0</div><div class="lbl">streak</div></div>
     <div class="stat"><div class="num" id="best">0</div><div class="lbl">best</div></div>
@@ -305,8 +341,11 @@
       <button id="ov-share">SHARE 📣</button>
       <button id="ov-btn" class="ghost">MORF AGAIN</button>
     </div>
+    <button id="ov-board" class="linklike">👁 show my board</button>
   </div>
 </div>
+
+<button id="peek" hidden>↑ SEE RESULTS</button>
 
 <div id="help">
   <div class="card help-card">
@@ -362,13 +401,13 @@
   COMMON.forEach(w => WORD_SET.add(w)); // par-path words always count as valid steps
 
   const L = 4;
-  const MAXSHARE = 12;
 
   const puzzleEl = document.getElementById("puzzle");
   const toast = document.getElementById("toast");
   const overlay = document.getElementById("overlay");
   const help = document.getElementById("help");
   const rungsEl = document.getElementById("rungs");
+  const peek = document.getElementById("peek");
 
   let mode = "daily";
   let puzzle;          // {start, target, par}
@@ -552,6 +591,7 @@
   function newRound() {
     done = false;
     overlay.classList.remove("show");
+    peek.hidden = true;
     if (mode === "daily") {
       const today = todayNum();
       puzzle = genPuzzle(mulberry32(today * 7919 + 12345));
@@ -575,7 +615,9 @@
     ladder = hist.filter(e => !e.bad).map(e => e.w);
     saveStats();
     render();
-    endCard(rankFor(ladder.length - 1 - puzzle.par), `${puzzle.start} → ${puzzle.target}`,
+    const goodSteps = ladder.length - 1;
+    const fumbles = hist.filter(e => e.bad).length;
+    endCard(rankFor(goodSteps, fumbles), `${puzzle.start} → ${puzzle.target}`,
       `Next word in ${nextDailyIn()} — flex this one while it lasts.`);
   }
 
@@ -611,18 +653,31 @@
     render();
   }
 
-  const RANKS = ["🔮 PERFECT PATH!", "🧠 SO CLOSE!", "🔥 SOLID!", "😅 GOT THERE!"];
-  function rankFor(margin) {
-    if (margin < 0) return "🦅 BEYOND PERFECT!"; // an off-graph word shortcut
-    return RANKS[Math.min(margin, RANKS.length - 1)];
+  // A run is judged on its GOOD steps (the ladder it actually climbed) and its
+  // fumbles separately. "Perfect" means flawless: optimal length AND zero
+  // fumbles. One bad move can never be perfect — even if a clever shortcut word
+  // kept the total step count at par.
+  const OFF_RANKS = [["🧠", "SO CLOSE"], ["🔥", "SOLID"], ["😅", "GOT THERE"]];
+  function rankParts(goodSteps, fumbles) {
+    if (fumbles === 0 && goodSteps < puzzle.par) return ["🦅", "BEYOND PERFECT"];
+    if (fumbles === 0 && goodSteps === puzzle.par) return ["🔮", "PERFECT PATH"];
+    const over = Math.max(0, goodSteps - puzzle.par) + fumbles; // 1+ here
+    return OFF_RANKS[Math.min(over - 1, OFF_RANKS.length - 1)];
+  }
+  function rankFor(goodSteps, fumbles) {
+    const [emoji, label] = rankParts(goodSteps, fumbles);
+    return `${emoji} ${label}!`;
   }
 
   function win() {
     done = true;
     render();
     puzzleEl.lastChild.classList.add("bounce");
-    const rungs = hist.length - 1;
-    const margin = rungs - puzzle.par;
+    const totalSteps = hist.length - 1;          // every submission, fumbles included
+    const goodSteps = ladder.length - 1;         // rungs actually climbed
+    const fumbles = hist.filter(e => e.bad).length;
+    const over = Math.max(0, goodSteps - puzzle.par) + fumbles;
+    const flawlessPerfect = over === 0;          // optimal length AND zero fumbles
     if (mode === "daily") {
       const today = todayNum();
       daily.streak = daily.lastWinDay === today - 1 ? daily.streak + 1 : 1;
@@ -632,21 +687,23 @@
       daily.lastResult = { day: today, start: puzzle.start, target: puzzle.target, par: puzzle.par, hist };
     } else {
       stats.solved++;
-      stats.streak = margin <= 0 ? stats.streak + 1 : 0; // endless streak = consecutive perfect climbs
+      stats.streak = flawlessPerfect ? stats.streak + 1 : 0; // endless streak = consecutive flawless paths
       if (stats.streak > stats.best) stats.best = stats.streak;
     }
     saveStats();
-    if (margin <= 1) confetti();
+    if (over <= 1) confetti();
+    const slip = fumbles ? ` · ${fumbles} slip${fumbles === 1 ? "" : "s"}` : "";
     const sub = mode === "daily"
-      ? `${rungs} steps (perfect is ${puzzle.par}). Daily streak: ${daily.streak} 🔥`
-      : margin <= 0
+      ? `${totalSteps} steps (perfect is ${puzzle.par})${slip}. Daily streak: ${daily.streak} 🔥`
+      : flawlessPerfect
         ? `Perfect streak: ${stats.streak} 🔥 Don't blink.`
-        : `${rungs} steps (perfect is ${puzzle.par}). Perfect paths feed the streak!`;
-    setTimeout(() => endCard(rankFor(margin), `${puzzle.start} → ${puzzle.target}`, sub), 650);
+        : `${totalSteps} steps (perfect is ${puzzle.par})${slip}. Flawless paths feed the streak!`;
+    setTimeout(() => endCard(rankFor(goodSteps, fumbles), `${puzzle.start} → ${puzzle.target}`, sub), 650);
   }
 
   function endCard(title, word, sub) {
     kb.blur(); // round's over — drop the keyboard so the card has the screen
+    peek.hidden = true;
     document.getElementById("ov-title").textContent = title;
     document.getElementById("ov-word").textContent = word;
     document.getElementById("ov-sub").textContent = sub;
@@ -654,32 +711,28 @@
     overlay.classList.add("show");
   }
 
-  // ----- Share: rung trail, no intermediate words revealed -----
+  // ----- Share: a clean scorecard. No grid to decode, no spoilers — just the
+  // morph, the rank, and the score, readable at a glance. -----
   const PLAY_URL = "https://morf.day";
   function shareText() {
-    const rungs = hist.length - 1;
-    const lines = [];
+    const totalSteps = hist.length - 1;
+    const goodSteps = ladder.length - 1;
+    const fumbles = hist.filter(e => e.bad).length;
+    const [emoji, label] = rankParts(goodSteps, fumbles);
+
     const head = mode === "daily" ? `MORF Daily #${todayNum()}` : "MORF Endless";
-    lines.push(`${head} — ${puzzle.start.toUpperCase()} ➜ ${puzzle.target.toUpperCase()}`);
-    lines.push(`${rungs} steps · perfect is ${puzzle.par} ${rungs < puzzle.par ? "🦅" : rungs === puzzle.par ? "🔮" : ""}`);
-    let prevGood = hist[0].w;
-    for (let n = 1; n <= Math.min(rungs, MAXSHARE); n++) {
-      const e = hist[n];
-      if (e.bad) {
-        const wi = diffIdx(prevGood, e.w);
-        lines.push("⬜".repeat(wi) + "🟥" + "⬜".repeat(L - 1 - wi));
-        continue;
-      }
-      const ci = diffIdx(prevGood, e.w);
-      let row = "";
-      for (let i = 0; i < L; i++) row += e.w[i] === puzzle.target[i] ? "🟩" : (i === ci ? "🟪" : "⬜");
-      lines.push(row);
-      prevGood = e.w;
-    }
-    if (rungs > MAXSHARE) lines.push("…it was a journey.");
+    const slip = fumbles ? `, ${fumbles} slip${fumbles === 1 ? "" : "s"}` : "";
     const s = mode === "daily" ? daily : stats;
-    if (s.streak > 1) lines.push(`🔥 streak: ${s.streak}`);
-    lines.push(mode === "daily" ? "Find a shorter path." : "Race you.");
+
+    const lines = [];
+    lines.push(`${head} ${emoji}`);                                   // scannable in a notification
+    lines.push(`${puzzle.start.toUpperCase()} ➜ ${puzzle.target.toUpperCase()}`);
+    lines.push("");
+    lines.push(`${emoji} ${label}`);                                  // the headline result
+    lines.push(`🪜 ${totalSteps} step${totalSteps === 1 ? "" : "s"} · perfect is ${puzzle.par}${slip}`);
+    if (s.streak > 1) lines.push(`🔥 ${mode === "daily" ? "Daily streak" : "Perfect streak"}: ${s.streak}`);
+    lines.push("");
+    lines.push(label === "PERFECT PATH" || label === "BEYOND PERFECT" ? "Can you match it? 👀" : "Bet you can do better 👀");
     lines.push(PLAY_URL);
     return lines.join("\n");
   }
@@ -734,6 +787,17 @@
     if (mode === "daily") setMode("endless");
     else newRound();
     focusKb();
+  });
+
+  // Peek at your finished board: hide the card, reveal the climb underneath,
+  // and drop a pill to bring the results back.
+  document.getElementById("ov-board").addEventListener("click", () => {
+    overlay.classList.remove("show");
+    peek.hidden = false;
+  });
+  peek.addEventListener("click", () => {
+    peek.hidden = true;
+    overlay.classList.add("show");
   });
 
   function toggleHelp(show) { help.classList.toggle("show", show); if (show) kb.blur(); }
