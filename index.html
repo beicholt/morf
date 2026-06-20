@@ -50,16 +50,12 @@
   }
   .logo .o {                          /* O — a green word-row tile with a punched hole */
     display: inline-block;
-    width: .80em;
-    height: .80em;
-    margin: 0 .05em;
-    vertical-align: -.07em;
-    border-radius: 26%;
-    background: radial-gradient(circle closest-side at 50% 50%, var(--bg) 0 55%, var(--lock) 57%);
-    color: transparent;               /* keep the real glyph for screen readers, hide it visually */
-    overflow: hidden;
-    line-height: 1;
+    width: .82em;
+    height: .82em;
+    margin: 0 .06em;
+    vertical-align: -.06em;
   }
+  .logo .o svg { display: block; width: 100%; height: 100%; }
   #help-btn {
     width: 24px;
     height: 24px;
@@ -318,7 +314,7 @@
 <body>
 
 <header>
-  <div class="logo">M<span class="o">O</span>RF<button id="help-btn" aria-label="How to play">?</button></div>
+  <div class="logo">M<span class="o" role="img" aria-label="O"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><mask id="morf-o-hole"><rect width="100" height="100" rx="18" fill="#fff"/><circle cx="50" cy="50" r="27" fill="#000"/></mask></defs><rect width="100" height="100" rx="18" fill="#27b364" mask="url(#morf-o-hole)"/></svg></span>RF<button id="help-btn" aria-label="How to play">?</button></div>
   <div class="stats">
     <div class="stat"><div class="num fire" id="streak">0</div><div class="lbl">streak</div></div>
     <div class="stat"><div class="num" id="best">0</div><div class="lbl">best</div></div>
