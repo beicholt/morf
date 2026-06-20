@@ -201,6 +201,8 @@
   }
   @keyframes rise { from { transform: translateY(16px); opacity: 0; } }
   .card h2 { font-size: 1.5rem; margin-bottom: 6px; }
+  #ov-title { display: flex; align-items: center; justify-content: center; gap: .3em; }
+  .rank-emoji { font-size: 1.15em; line-height: 1; }
   .card .word { font-size: 1.5rem; font-weight: 800; letter-spacing: 3px; color: var(--accent); margin: 8px 0; text-transform: uppercase; }
   .card p { color: var(--muted); margin-bottom: 18px; font-size: .9rem; }
   .card .btnrow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
@@ -333,11 +335,11 @@
       <button id="ov-share">SHARE 📣</button>
       <button id="ov-btn" class="ghost">MORF AGAIN</button>
     </div>
-    <button id="ov-board" class="linklike">👁 show my board</button>
+    <button id="ov-board" class="linklike">👀 see my board</button>
   </div>
 </div>
 
-<button id="peek" hidden>↑ SEE RESULTS</button>
+<button id="peek" hidden>SHOW RESULTS</button>
 
 <div id="help">
   <div class="card help-card">
@@ -609,7 +611,8 @@
     render();
     const goodSteps = ladder.length - 1;
     const fumbles = hist.filter(e => e.bad).length;
-    endCard(rankFor(goodSteps, fumbles), `${puzzle.start} → ${puzzle.target}`,
+    const [rankEmoji, rankLabel] = rankParts(goodSteps, fumbles);
+    endCard(rankEmoji, rankLabel, `${puzzle.start} → ${puzzle.target}`,
       `Next word in ${nextDailyIn()} — flex this one while it lasts.`);
   }
 
@@ -656,11 +659,6 @@
     const over = Math.max(0, goodSteps - puzzle.par) + fumbles; // 1+ here
     return OFF_RANKS[Math.min(over - 1, OFF_RANKS.length - 1)];
   }
-  function rankFor(goodSteps, fumbles) {
-    const [emoji, label] = rankParts(goodSteps, fumbles);
-    return `${emoji} ${label}!`;
-  }
-
   function win() {
     done = true;
     render();
@@ -690,47 +688,102 @@
       : flawlessPerfect
         ? `Perfect streak: ${stats.streak} 🔥 Don't blink.`
         : `${totalSteps} steps (perfect is ${puzzle.par})${slip}. Flawless paths feed the streak!`;
-    setTimeout(() => endCard(rankFor(goodSteps, fumbles), `${puzzle.start} → ${puzzle.target}`, sub), 650);
+    const [rankEmoji, rankLabel] = rankParts(goodSteps, fumbles);
+    setTimeout(() => endCard(rankEmoji, rankLabel, `${puzzle.start} → ${puzzle.target}`, sub), 650);
   }
 
-  function endCard(title, word, sub) {
+  function endCard(emoji, label, word, sub) {
     kb.blur(); // round's over — drop the keyboard so the card has the screen
     peek.hidden = true;
-    document.getElementById("ov-title").textContent = title;
+    const t = document.getElementById("ov-title");
+    t.innerHTML = "";
+    const e = document.createElement("span"); e.className = "rank-emoji"; e.textContent = emoji;
+    const l = document.createElement("span"); l.textContent = label + "!";
+    t.append(e, l);
     document.getElementById("ov-word").textContent = word;
     document.getElementById("ov-sub").textContent = sub;
     document.getElementById("ov-btn").textContent = mode === "daily" ? "PLAY ENDLESS" : "MORF AGAIN";
     overlay.classList.add("show");
   }
 
-  // ----- Share: a clean scorecard. No grid to decode, no spoilers — just the
-  // morph, the rank, and the score, readable at a glance. -----
+  // ----- Share: a rendered result card (a graphic, not a wall of text) with a
+  // short text fallback when image sharing isn't available. -----
   const PLAY_URL = "https://morf.day";
-  function shareText() {
+  function shareData() {
     const totalSteps = hist.length - 1;
     const goodSteps = ladder.length - 1;
     const fumbles = hist.filter(e => e.bad).length;
     const [emoji, label] = rankParts(goodSteps, fumbles);
-
-    const head = mode === "daily" ? `MORF Daily #${todayNum()}` : "MORF Endless";
-    const slip = fumbles ? `, ${fumbles} slip${fumbles === 1 ? "" : "s"}` : "";
-    const s = mode === "daily" ? daily : stats;
-
-    const lines = [];
-    lines.push(`${head} ${emoji}`);                                   // scannable in a notification
-    lines.push(`${puzzle.start.toUpperCase()} ➜ ${puzzle.target.toUpperCase()}`);
-    lines.push("");
-    lines.push(`${emoji} ${label}`);                                  // the headline result
-    lines.push(`🪜 ${totalSteps} step${totalSteps === 1 ? "" : "s"} · perfect is ${puzzle.par}${slip}`);
-    if (s.streak > 1) lines.push(`🔥 ${mode === "daily" ? "Daily streak" : "Perfect streak"}: ${s.streak}`);
-    lines.push("");
-    lines.push(label === "PERFECT PATH" || label === "BEYOND PERFECT" ? "Can you match it? 👀" : "Bet you can do better 👀");
-    lines.push(PLAY_URL);
-    return lines.join("\n");
+    return {
+      head: mode === "daily" ? `MORF Daily #${todayNum()}` : "MORF Endless",
+      start: puzzle.start, target: puzzle.target, emoji, label,
+      totalSteps, par: puzzle.par,
+      perfect: label === "PERFECT PATH" || label === "BEYOND PERFECT",
+    };
   }
 
-  function share() {
-    const text = shareText();
+  // Short caption riding along with the image (and the no-image fallback).
+  function shortText() {
+    const d = shareData();
+    return `${d.head} — ${d.start.toUpperCase()} ➜ ${d.target.toUpperCase()}\n`
+         + `${d.emoji} ${d.label} in ${d.totalSteps}\n${PLAY_URL}`;
+  }
+
+  // The brand wordmark, inlined as a data URL so it survives SVG rasterization.
+  let logoDataPromise;
+  function logoData() {
+    if (!logoDataPromise) logoDataPromise = fetch("morf-logo.png")
+      .then(r => r.blob())
+      .then(b => new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(b); }))
+      .catch(() => "");
+    return logoDataPromise;
+  }
+
+  function cardSVG(d, logoHref) {
+    const N = d.start.length, TS = 150, GAP = 22;
+    const x0 = (1080 - (N * TS + (N - 1) * GAP)) / 2, startY = 360, targetY = 600;
+    const row = (word, y, fill, stroke, ink) => {
+      let s = "";
+      for (let i = 0; i < N; i++) {
+        const x = x0 + i * (TS + GAP);
+        s += `<rect x="${x}" y="${y}" width="${TS}" height="${TS}" rx="22" fill="${fill}" stroke="${stroke}" stroke-width="4"/>`
+           + `<text x="${x + TS / 2}" y="${y + TS / 2 + 30}" text-anchor="middle" font-size="86" font-weight="800" fill="${ink}">${word[i].toUpperCase()}</text>`;
+      }
+      return s;
+    };
+    const pillColor = d.perfect ? "#27b364" : "#ff5d8f";
+    const pillW = Math.min(940, d.label.length * 46 + 130), pillX = (1080 - pillW) / 2, pillY = 824;
+    const logo = logoHref ? `<image href="${logoHref}" x="${(1080 - 460) / 2}" y="120" width="460"/>` : "";
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">`
+      + `<style>text{font-family:-apple-system,system-ui,'Segoe UI',Arial,sans-serif}</style>`
+      + `<rect width="1080" height="1080" fill="#12131a"/>` + logo
+      + `<text x="540" y="312" text-anchor="middle" font-size="38" font-weight="700" fill="#8b8fa3" letter-spacing="3">${d.head.toUpperCase()}</text>`
+      + row(d.start, startY, "#1b1d27", "#3a3d4d", "#f2f3f7")
+      + `<text x="540" y="578" text-anchor="middle" font-size="60" fill="#ff5d8f">▼</text>`
+      + row(d.target, targetY, "#27b364", "#27b364", "#ffffff")
+      + `<rect x="${pillX}" y="${pillY}" width="${pillW}" height="118" rx="59" fill="${pillColor}"/>`
+      + `<text x="540" y="${pillY + 80}" text-anchor="middle" font-size="62" font-weight="800" fill="#ffffff">${d.label}</text>`
+      + `<text x="540" y="1004" text-anchor="middle" font-size="40" fill="#8b8fa3">${d.totalSteps} steps · perfect ${d.par}</text>`
+      + `<text x="540" y="1056" text-anchor="middle" font-size="44" font-weight="800" fill="#ff5d8f" letter-spacing="2">morf.day</text>`
+      + `</svg>`;
+  }
+
+  function shareBlob() {
+    return logoData().then(href => new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement("canvas");
+        c.width = 1080; c.height = 1080;
+        c.getContext("2d").drawImage(img, 0, 0, 1080, 1080);
+        c.toBlob(b => b ? resolve(b) : reject(new Error("no blob")), "image/png");
+      };
+      img.onerror = reject;
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(cardSVG(shareData(), href));
+    }));
+  }
+
+  function shareFallback() {
+    const text = shortText();
     if (navigator.share) { navigator.share({ text }).catch(() => {}); return; }
     const copied = () => showToast("Copied! Go flex 💪");
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -738,6 +791,17 @@
     } else {
       legacyCopy(text, copied);
     }
+  }
+
+  function share() {
+    const caption = shortText();
+    shareBlob().then(blob => {
+      const file = new File([blob], "morf.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file], text: caption }).catch(() => {});
+      }
+      shareFallback();
+    }).catch(shareFallback);
   }
 
   function legacyCopy(text, onDone) {
