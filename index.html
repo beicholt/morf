@@ -48,7 +48,18 @@
     color: var(--accent);            /* M · R · F — brand pink */
     text-shadow: 0 2px 0 rgba(0,0,0,.45);
   }
-  .logo .o { color: var(--lock); }   /* O — brand green, the "match" color */
+  .logo .o {                          /* O — a green word-row tile with a punched hole */
+    display: inline-block;
+    width: .80em;
+    height: .80em;
+    margin: 0 .05em;
+    vertical-align: -.07em;
+    border-radius: 26%;
+    background: radial-gradient(circle closest-side at 50% 50%, var(--bg) 0 55%, var(--lock) 57%);
+    color: transparent;               /* keep the real glyph for screen readers, hide it visually */
+    overflow: hidden;
+    line-height: 1;
+  }
   #help-btn {
     width: 24px;
     height: 24px;
